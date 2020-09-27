@@ -1,0 +1,5 @@
+# vscode settings
+.vscode
+
+# jupyter checkpoints
+.ipynb_checkpoints
