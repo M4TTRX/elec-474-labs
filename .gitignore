@@ -3,3 +3,6 @@
 
 # jupyter checkpoints
 .ipynb_checkpoints
+
+# ignore zip files
+.zip
