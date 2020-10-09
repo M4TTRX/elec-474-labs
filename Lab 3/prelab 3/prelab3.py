@@ -116,23 +116,33 @@ def canny_edge_detection(img):
     return cv2.Canny(img, threshold1=threshold_low, threshold2=threshold_hi)
 
 
-# Rendering
-window_name = "canny"
-cv2.namedWindow(window_name)
+# # Rendering
+# window_name = "canny"
+# cv2.namedWindow(window_name)
 
-reset_all()
+# reset_all()
 img_canny = canny_edge_detection(img)
-cv2.createTrackbar("Low Threshold", window_name, threshold_low, 255, on_trackbar_low)
-cv2.createTrackbar("High Threshold", window_name, threshold_hi, 255, on_trackbar_hi)
+# cv2.createTrackbar("Low Threshold", window_name, threshold_low, 255, on_trackbar_low)
+# cv2.createTrackbar("High Threshold", window_name, threshold_hi, 255, on_trackbar_hi)
 
-while True:
-    # Wait a little bit for the image to re-draw
-    key = cv2.waitKey(5)
-    cv2.imshow(window_name, img_canny)
+# while True:
+#     # Wait a little bit for the image to re-draw
+#     key = cv2.waitKey(5)
+#     cv2.imshow(window_name, img_canny)
 
-    # If an x is pressed, the window will close
-    if key == ord("x"):
-        break
-    # If an r is pressed, reset the image
-    if key == ord("r"):
-        reset_all()
+#     # If an x is pressed, the window will close
+#     if key == ord("x"):
+#         break
+#     # If an r is pressed, reset the image
+#     if key == ord("r"):
+#         reset_all()
+
+
+def get_difference_ratio(img1, img2):
+    img_mask = img1 == img2
+    print(img_mask)
+    number_of_pixels = img1.shape[0] * img1.shape[1]
+    return sum(sum(img_mask)) / number_of_pixels
+
+
+print(get_difference_ratio(img, img_canny))
