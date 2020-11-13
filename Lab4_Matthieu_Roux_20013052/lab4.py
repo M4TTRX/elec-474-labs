@@ -10,7 +10,7 @@ cereal_r_url = prelab_path + "cereal_r.jpg"
 
 img_ref_bgr = cv2.imread(cereal_url)
 img_ref = cv2.cvtColor(img_ref_bgr, cv2.COLOR_BGR2GRAY)
-img_per = cv2.cvtColor(cereal_r_url, cv2.COLOR_BGR2GRAY)
+img_perspective = cv2.cvtColor(cv2.imread(cereal_r_url), cv2.COLOR_BGR2GRAY)
 
 
 def show_img(img, name="my image"):
@@ -61,6 +61,22 @@ def modify_image(img):
     return img * 2
 
 
+def is_black(pixel):
+    for sub_px in pixel:
+        if sub_px > 0:
+            return False
+    return True
+
+
+def apply_overlay(background, overlay):
+    img_overlaid = np.zeros((background.shape[0], background.shape[1], 3), np.uint8)
+    for index in np.ndindex(background.shape):
+        img_overlaid[index] = (
+            background[index] if is_black(overlay[index]) else overlay[index]
+        )
+    return img_overlaid
+
+
 # generate an affine image
 img_affine = affine_transform(img_ref)
 
@@ -70,6 +86,7 @@ ref_params, affine_params, lowe_matches = get_matches(img_ref, img_affine)
 kp_ref, des_ref = ref_params
 kp_affine, affine_des = affine_params
 
+# format points
 ref_pts = np.float32(
     [kp_ref[m.queryIdx].pt for m in lowe_matches],
 ).reshape(-1, 1, 2)
@@ -78,10 +95,36 @@ img_pts = np.float32(
 ).reshape(-1, 1, 2)
 
 estimated_rotation_matrix = cv2.estimateAffinePartial2D(ref_pts, img_pts)[0]
+
 modified_img = modify_image(img_ref_bgr)
 overlaid_affine = cv2.warpAffine(
     modified_img,
     estimated_rotation_matrix,
     (modified_img.shape[0], modified_img.shape[1]),
 )
-show_img(overlaid_affine)
+
+# Perspective
+
+# obtain matches and keypoints
+ref_params, affine_params, lowe_matches = get_matches(img_ref, img_perspective)
+
+kp_ref, des_ref = ref_params
+kp_affine, affine_des = affine_params
+
+# format points
+ref_pts = np.float32(
+    [kp_ref[m.queryIdx].pt for m in lowe_matches],
+).reshape(-1, 1, 2)
+img_pts = np.float32(
+    [kp_affine[m.trainIdx].pt for m in lowe_matches],
+).reshape(-1, 1, 2)
+
+homography_matrix = cv2.findHomography(ref_pts, img_pts)[0]
+modified_img = modify_image(img_ref_bgr)
+
+img_overlay = cv2.warpPerspective(
+    modified_img,
+    homography_matrix,
+    (modified_img.shape[0], modified_img.shape[1]),
+)
+show_img(apply_overlay(background=img_perspective, overlay=img_overlay))
