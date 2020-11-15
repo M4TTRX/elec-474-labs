@@ -17,9 +17,12 @@ cereal_r_url = prelab_path + "cereal_r.jpg"
 cereal_l_url = prelab_path + "cereal_l.jpg"
 cereal_tr_url = prelab_path + "cereal_tr.jpg"
 cereal_tl_url = prelab_path + "cereal_tl.jpg"
-cereal_per_url = cereal_tr_url
+cereal_per_url = cereal_tl_url
 
-img_perspective = cv2.cvtColor(cv2.imread(cereal_tr_url), cv2.COLOR_BGR2GRAY)
+cereal_r = cv2.cvtColor(cv2.imread(cereal_r_url), cv2.COLOR_BGR2GRAY)
+cereal_l = cv2.cvtColor(cv2.imread(cereal_l_url), cv2.COLOR_BGR2GRAY)
+cereal_tr = cv2.cvtColor(cv2.imread(cereal_tr_url), cv2.COLOR_BGR2GRAY)
+cereal_tl = cv2.cvtColor(cv2.imread(cereal_tl_url), cv2.COLOR_BGR2GRAY)
 
 
 def show_img(img, name="my image"):
@@ -45,31 +48,17 @@ def compute_matches(des1, des2):
 
 
 def get_matches(img_1, img_2):
-    sift = cv2.SIFT()
-    # putting keypoints in variabels for better legibility
-    kp_img_1, des_img_1 = sift.detectAndCompute(img_1, None)
-    kp_img_2, des_img_2 = sift.detectAndCompute(img_2, None)
-
-    matches = compute_matches(des_img_1, des_img_2)
-    lowe_ratio_matches = lowe_ratio_match(matches)
-    return (kp_img_1, des_img_1), (kp_img_2, des_img_2), lowe_ratio_matches
-
-
-def get_matches_2(img_1, img_2):
     my_SIFT_instance = cv2.SIFT_create()
     # putting keypoints in variabels for better legibility
-    kp_img_1, des_img_1 = my_SIFT_instance.detectAndCompute(img_1, None)
-    kp_img_2, des_img_2 = my_SIFT_instance.detectAndCompute(img_2, None)
+    kp1, des1 = my_SIFT_instance.detectAndCompute(img_1, None)
+    kp2, des2 = my_SIFT_instance.detectAndCompute(img_2, None)
 
-    # FLANN parameters
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    search_params = dict(checks=150)
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(des_img_1, des_img_2, k=2)
+    # matching
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(des1, des2, k=2)
 
-    lowe_ratio_matches = lowe_ratio_match(matches)
-    return (kp_img_1, des_img_1), (kp_img_2, des_img_2), lowe_ratio_matches
+    lowe_matches = lowe_ratio_match(matches)
+    return (kp1, des1), (kp2, des2), lowe_matches
 
 
 def affine_transform(img, rotation_value=42, scaling_value=0.4):
@@ -116,7 +105,7 @@ def apply_overlay(background, overlay):
 img_affine = affine_transform(img_ref)
 
 # obtain matches and keypoints
-ref_params, affine_params, lowe_matches = get_matches_2(img_ref, img_affine)
+ref_params, affine_params, lowe_matches = get_matches(img_ref, img_affine)
 
 kp_ref, des_ref = ref_params
 kp_affine, des_affine = affine_params
@@ -140,31 +129,56 @@ affine_overlay = cv2.warpAffine(
 img_affine_overlaid = apply_overlay(background=img_affine, overlay=affine_overlay)
 
 # Perspective
+def perspective_overlay(
+    img_ref, img_perspective, modified_img, display_img=True, name="my perspectie test"
+):
+    # obtain matches and keypoints
+    ref_params, affine_params, lowe_matches = get_matches(img_ref, img_perspective)
 
-# obtain matches and keypoints
-ref_params, affine_params, lowe_matches = get_matches_2(img_ref, img_perspective)
+    kp_ref = ref_params[0]
+    kp_perspective = affine_params[0]
 
-kp_ref, des_ref = ref_params
-kp_perspective, des_affine = affine_params
+    # format points
+    ref_pts = np.float32(
+        [kp_ref[m.queryIdx].pt for m in lowe_matches],
+    ).reshape(-1, 1, 2)
+    img_pts = np.float32(
+        [kp_perspective[m.trainIdx].pt for m in lowe_matches],
+    ).reshape(-1, 1, 2)
 
-# format points
-ref_pts = np.float32(
-    [kp_ref[m.queryIdx].pt for m in lowe_matches],
-).reshape(-1, 1, 2)
-img_pts = np.float32(
-    [kp_perspective[m.trainIdx].pt for m in lowe_matches],
-).reshape(-1, 1, 2)
+    homography_matrix = cv2.findHomography(ref_pts, img_pts, cv2.RANSAC)[0]
 
-homography_matrix = cv2.findHomography(ref_pts, img_pts)[0]
+    img_overlay = cv2.warpPerspective(
+        modified_img,
+        homography_matrix,
+        (modified_img.shape[0], modified_img.shape[1]),
+    )
+    img_per_overlaid = apply_overlay(background=img_perspective, overlay=img_overlay)
 
-img_overlay = cv2.warpPerspective(
-    modified_img,
-    homography_matrix,
-    (modified_img.shape[0], modified_img.shape[1]),
-)
-img_per_overlaid = apply_overlay(background=img_perspective, overlay=img_overlay)
+    if display_img:
+        show_img(img_per_overlaid, name="my perspectie test")
+
+    return img_per_overlaid
+
+
+# Displaying
+show_img(cv2.cvtColor(img_ref, cv2.COLOR_GRAY2BGR), name="reference")
+
+# Display affine images, original then overlay
+show_img(cv2.cvtColor(img_affine, cv2.COLOR_GRAY2BGR), name="affine_original")
+show_img(img_affine_overlaid, name="affine_overlaid")
+
+# Display perspective images, original then overlay
+show_img(cv2.cvtColor(cereal_r, cv2.COLOR_GRAY2BGR), name="cereal_r_original")
+perspective_overlay(img_ref, cereal_r, modified_img, name="cereal_r_overlaid")
+
+show_img(cv2.cvtColor(cereal_l, cv2.COLOR_GRAY2BGR), name="cereal_l_original")
+perspective_overlay(img_ref, cereal_l, modified_img, name="cereal_l_overlaid")
+
+show_img(cv2.cvtColor(cereal_tr, cv2.COLOR_GRAY2BGR), name="cereal_tr_original")
+perspective_overlay(img_ref, cereal_tr, modified_img, name="cereal_tr_overlaid")
+
+show_img(cv2.cvtColor(cereal_tl, cv2.COLOR_GRAY2BGR), name="cereal_tl_original")
+perspective_overlay(img_ref, cereal_tl, modified_img, name="cereal_tl_overlaid")
 
 # Show all images
-show_img(img_ref_bgr, name="Reference Image")
-show_img(img_affine_overlaid, name="Affine Transform Overlay")
-show_img(img_per_overlaid, name="Perspective Transform Overlay")
