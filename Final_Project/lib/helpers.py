@@ -14,7 +14,7 @@ def show_img(imgs, names=[], use_plt=False):
         # wait a little bit for the image to re-draw
         key = cv2.waitKey(5)
         for img, name in zip(imgs, names):
-            if img != None:
+            if img is not None:
                 cv2.imshow(name, img)
 
         # if an x is pressed, the window will close

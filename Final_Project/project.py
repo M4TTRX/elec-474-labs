@@ -40,7 +40,7 @@ def import_dataset():
         for i in range(1, 12 + 1)
     ]
     fake_imgs = [
-        [cv2.imread(f"{data_path}fake/{i}{t}r.jpg") for t in img_types]
+        [cv2.imread(f"{data_path}fake/{i}{t}f.jpg") for t in img_types]
         for i in range(1, 12 + 1)
     ]
     return real_imgs, fake_imgs
@@ -57,6 +57,8 @@ if __name__ == "__main__":
     real_faces = [
         [face_finder.find_face(img) for img in triplet] for triplet in real_imgs
     ]
+    for triplet in real_faces:
+        show_img(triplet)
     fake_faces = [
         [face_finder.find_face(img) for img in triplet] for triplet in fake_imgs
     ]
