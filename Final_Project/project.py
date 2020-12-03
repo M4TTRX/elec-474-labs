@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from lib.haar_cascade import FaceFinder
+from lib.helpers import show_img
 
 
 def get_evalutaion_matrix(predictions, actual):
@@ -26,3 +28,35 @@ def get_evalutaion_matrix(predictions, actual):
         true_negative,
         false_negative,
     )
+
+
+def import_dataset():
+    # initiate img types and path
+    img_types = ["C", "L", "R"]
+    data_path = "Final_Project/dataset/"
+
+    real_imgs = [
+        [cv2.imread(f"{data_path}real/{i}{t}r.jpg") for t in img_types]
+        for i in range(1, 12 + 1)
+    ]
+    fake_imgs = [
+        [cv2.imread(f"{data_path}fake/{i}{t}r.jpg") for t in img_types]
+        for i in range(1, 12 + 1)
+    ]
+    return real_imgs, fake_imgs
+
+
+if __name__ == "__main__":
+
+    # load the dataset
+    real_imgs, fake_imgs = import_dataset()
+
+    # find the faces in all images
+    path = "C:/dev/opencv"
+    face_finder = FaceFinder(path)
+    real_faces = [
+        [face_finder.find_face(img) for img in triplet] for triplet in real_imgs
+    ]
+    fake_faces = [
+        [face_finder.find_face(img) for img in triplet] for triplet in fake_imgs
+    ]
