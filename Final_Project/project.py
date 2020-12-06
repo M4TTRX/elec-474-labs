@@ -52,7 +52,7 @@ if __name__ == "__main__":
     real_imgs, fake_imgs = import_dataset()
 
     # find the faces in all images
-    path = "C:/dev/opencv"
+    path = "../../opencv"
     face_finder = FaceFinder(path)
     real_faces = [
         [face_finder.find_face(img) for img in triplet] for triplet in real_imgs
