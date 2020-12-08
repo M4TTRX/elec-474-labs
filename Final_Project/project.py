@@ -4,7 +4,7 @@ from lib.haar_cascade import FaceFinder
 from lib.helpers import show_img
 
 
-def get_evalutaion_matrix(predictions, actual):
+def get_evaluation_matrix(predictions, actual):
     true_positive = 0
     false_positive = 0
     true_negative = 0
